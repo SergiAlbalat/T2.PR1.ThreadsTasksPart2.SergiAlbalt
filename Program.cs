@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+﻿using CsvHelper;
+using CsvHelper.Configuration;
+using System.Diagnostics;
+using System.Globalization;
+using T2.PR1.ThreadsTasksPart2.SergiAlbalt;
 
 namespace T2.PR1.ThreadsTasksPart2.SergiAlbalat
 {
@@ -9,12 +13,10 @@ namespace T2.PR1.ThreadsTasksPart2.SergiAlbalat
         public static int shipY = 20;
         public static List<(int x, int y)> asteroids = new List<(int x, int y)>();
         public static object lockObject = new object();
-        public static int score = 0;
-        public static int deaths = 0;
-        public static Stopwatch stopwatch = new Stopwatch();
+        public static Record Record = new Record();
         public static async Task Main()
         {
-            stopwatch.Start();
+            Record.TotalPlayTime.Start();
             Console.CursorVisible = false;
             Console.SetWindowSize(45, 20);
             Task.Run(UpdateAsteroids);
@@ -25,7 +27,19 @@ namespace T2.PR1.ThreadsTasksPart2.SergiAlbalat
                 await Task.Delay(50);
             }
             Console.Clear();
-            Console.WriteLine($"Asteroids dodged: {score}\nDeaths: {deaths}\nTotal Play Time: {stopwatch.Elapsed.TotalSeconds} seconds");
+            Console.WriteLine($"Asteroids dodged: {Record.Score}\nDeaths: {Record.Deaths}\nTotal Play Time: {Record.TotalPlayTime.Elapsed.TotalSeconds} seconds");
+            string filePath = "../../../records.csv";
+            using StreamWriter sw = new StreamWriter(filePath, true);
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = !File.Exists(filePath)
+            };
+            using (var csvWriter = new CsvWriter(sw, config))
+            {
+                
+                csvWriter.WriteRecord(Record);
+                csvWriter.NextRecord();
+            }
         }
 
         public static async Task UpdateAsteroids()
@@ -44,13 +58,13 @@ namespace T2.PR1.ThreadsTasksPart2.SergiAlbalat
                     {
                         if(a.y > Console.WindowHeight)
                         {
-                            score++;
+                            Record.Score++;
                         }
                     });
                     asteroids.RemoveAll(a => a.y > Console.WindowHeight);  
                     if(asteroids.Any(a => a.x == shipX && a.y == shipY))
                     {
-                        deaths++;
+                        Record.Deaths++;
                         shipX = 22;
                         shipY = 20;
                         asteroids.Clear();
@@ -74,7 +88,7 @@ namespace T2.PR1.ThreadsTasksPart2.SergiAlbalat
                 }
                 if (key == ConsoleKey.Q)
                 {
-                    stopwatch.Stop();
+                    Record.TotalPlayTime.Stop();
                     gameRunning = false;
                 }
                 await Task.Delay(50);
